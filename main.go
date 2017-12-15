@@ -8,6 +8,7 @@ import (
 	//"strings"
 	"syscall"
 	//"time"
+	"math/rand"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/spf13/viper"
@@ -15,6 +16,8 @@ import (
 
 var debug_channel string
 var talking_channel string
+
+var freeze bool = false
 
 func main() {
 	viper.SetDefault("token", 0)
@@ -27,6 +30,7 @@ func main() {
 	if err != nil {             // Handle errors reading the config file
 		panic(fmt.Errorf("Fatal error config file: %s \n", err))
 	}
+
 	token := viper.Get("token").(string)
 	fmt.Print("token=" + token + "\r\n")
 
@@ -36,7 +40,6 @@ func main() {
 	talking_channel = viper.Get("talkingChannel").(string)
 	fmt.Print("talkingChannel=" + talking_channel + "\r\n")
 
-	// Create a new Discord session using the provided bot token.
 	dg, err := discordgo.New("Bot " + token)
 	if err != nil {
 		fmt.Println("error creating Discord session,", err)
@@ -44,10 +47,8 @@ func main() {
 	}
 
 	dg.AddHandler(ready)
-	// Register the messageCreate func as a callback for MessageCreate events.
 	dg.AddHandler(messageCreate)
 
-	// Open a websocket connection to Discord and begin listening.
 	err = dg.Open()
 	if err != nil {
 		fmt.Println("error opening connection,", err)
@@ -55,7 +56,7 @@ func main() {
 	}
 
 	fmt.Println("群主上线.")
-	dg.ChannelMessageSend(talking_channel, "萌七！")
+	dg.ChannelMessageSend(talking_channel, "<:xyx:389356458539614208>")
 
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
@@ -63,26 +64,47 @@ func main() {
 
 	fmt.Println("群主下线.")
 	dg.ChannelMessageSend(debug_channel, "群主下线.")
-	// Cleanly close down the Discord session.
 	dg.Close()
 }
 
 func ready(s *discordgo.Session, event *discordgo.Ready) {
-	s.ChannelMessageSend(debug_channel, "群主上线.")
-	s.UpdateStatus(0, "Artifact Idiot")
+	s.ChannelMessageSend(debug_channel, "女装已经换好，请各位来撩")
+	s.UpdateStatus(0, "女装山脉IV")
 }
 
-// This function will be called (due to AddHandler above) every time a new
-// message is created on any channel that the autenticated bot has access to.
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	// Ignore all messages created by the bot itself
-	// This isn't required in this specific example but it's a good practice.
+	fmt.Printf(m.Content + "\n")
 	if m.Author.ID == s.State.User.ID {
 		return
 	}
-	// If the message is "ping" reply with "Pong!"
-	if m.Content == "ping" {
-		s.ChannelMessageSend(m.ChannelID, "Pong!")
+
+	if !freeze && m.ChannelID == talking_channel {
+		// 图片
+		// m.Type
+		// 特定人识别
+		if IsVip(m.Author.ID) {
+			// 关键词识别
+
+			// 普通随机回复
+			if rand.Intn(1000) > 900 {
+				s.ChannelMessageSend(m.ChannelID, GetRandom(m.Author.ID))
+			}
+		} else {
+			if rand.Intn(1000) > 950 {
+				s.ChannelMessageSend(m.ChannelID, "<:xyx:389356458539614208>")
+			}
+		}
+	}
+
+	if m.Author.ID == "377366407089881088" {
+		if !freeze && m.Content == "一二三稻草人" {
+			freeze = true
+			s.ChannelMessageSend(debug_channel, "唔，呜呜唔，唔~~~")
+		}
+		if freeze && m.Content == "让他说话" {
+			freeze = false
+			s.ChannelMessageSend(debug_channel, "呜~~~啊~~~憋死我了")
+		}
 	}
 
 	// If the message is "pong" reply with "Ping!"
