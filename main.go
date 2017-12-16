@@ -74,16 +74,32 @@ func ready(s *discordgo.Session, event *discordgo.Ready) {
 }
 
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	fmt.Printf(m.Content + "\n")
 	if m.Author.ID == s.State.User.ID {
 		return
 	}
 
+	fmt.Printf(m.Author.Username + ":" + m.Content + "\n")
+	for _, v := range m.Embeds {
+		fmt.Printf(v.Type)
+	}
+	for _, v := range m.Attachments {
+		fmt.Printf("图片尺寸:%dx%d\n", v.Width, v.Height)
+	}
+
 	if !freeze && m.ChannelID == talking_channel {
 		// 图片
+		if len(m.Attachments) > 0 && m.Attachments[0].Width > 0 {
+			if rand.Intn(100) < 15 {
+				go func() {
+					str := PicTalk()
+					<-time.After(time.Millisecond * 500 * time.Duration(len(str)))
+					s.ChannelMessageSend(m.ChannelID, str)
+				}()
+			}
+		}
 		// m.Type
 		// 特定人识别
-		if IsVip(m.Author.ID) {
+		if len(m.Content) > 0 && IsVip(m.Author.ID) {
 			rands := rand.Intn(100)
 			fmt.Printf("rands=%d\n", rands)
 			if rands < 10 {
@@ -95,11 +111,12 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			}
 		} else {
 			if rand.Intn(100) < 5 {
-				s.ChannelMessageSend(m.ChannelID, "<:xyx:389356458539614208>")
+				s.ChannelMessageSend(m.ChannelID, IdleTalk())
 			}
 		}
 	}
 
+	// 临时禁言用
 	if m.Author.ID == "377366407089881088" {
 		if !freeze && m.Content == "一二三木头人" {
 			freeze = true

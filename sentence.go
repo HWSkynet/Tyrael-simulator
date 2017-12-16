@@ -186,7 +186,11 @@ func IsVip(id string) bool {
 	}
 }
 
-func GetIdle() string {
+func PicTalk() string {
+	return pic[rand.Intn(len(pic))]
+}
+
+func IdleTalk() string {
 	return idle[rand.Intn(len(idle))]
 }
 
