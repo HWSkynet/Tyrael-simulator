@@ -6,9 +6,9 @@ import (
 	"os"
 	"os/signal"
 	//"strings"
-	"syscall"
-	//"time"
 	"math/rand"
+	"syscall"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/spf13/viper"
@@ -20,6 +20,7 @@ var talking_channel string
 var freeze bool = false
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
 	viper.SetDefault("token", 0)
 	viper.SetDefault("debugChannel", 0)
 	viper.SetDefault("talkingChannel", 0)
@@ -68,7 +69,7 @@ func main() {
 }
 
 func ready(s *discordgo.Session, event *discordgo.Ready) {
-	s.ChannelMessageSend(debug_channel, "女装已经换好，请各位来撩")
+	s.ChannelMessageSend(debug_channel, "今天的女装已经准备好了，请各位赶快领取吧")
 	s.UpdateStatus(0, "女装山脉IV")
 }
 
@@ -83,21 +84,24 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		// m.Type
 		// 特定人识别
 		if IsVip(m.Author.ID) {
-			// 关键词识别
-
-			// 普通随机回复
-			if rand.Intn(1000) > 900 {
-				s.ChannelMessageSend(m.ChannelID, GetRandom(m.Author.ID))
+			rands := rand.Intn(100)
+			fmt.Printf("rands=%d\n", rands)
+			if rands < 10 {
+				go func() {
+					str := Talk(m.Author.ID, m.Content)
+					<-time.After(time.Millisecond * 300 * time.Duration(len(str)))
+					s.ChannelMessageSend(m.ChannelID, str)
+				}()
 			}
 		} else {
-			if rand.Intn(1000) > 950 {
+			if rand.Intn(100) < 5 {
 				s.ChannelMessageSend(m.ChannelID, "<:xyx:389356458539614208>")
 			}
 		}
 	}
 
 	if m.Author.ID == "377366407089881088" {
-		if !freeze && m.Content == "一二三稻草人" {
+		if !freeze && m.Content == "一二三木头人" {
 			freeze = true
 			s.ChannelMessageSend(debug_channel, "唔，呜呜唔，唔~~~")
 		}
