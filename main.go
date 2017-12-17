@@ -17,7 +17,21 @@ import (
 var debug_channel string
 var talking_channel string
 
-var freeze bool = false
+type qunzhu struct {
+	freeze   bool
+	boring   int
+	sleeping int
+	silence  int
+}
+
+var tyrael qunzhu = qunzhu{
+	freeze:   false,
+	boring:   0,
+	sleeping: 0,
+	silence:  0,
+}
+
+var gSession *discordgo.Session
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
@@ -33,13 +47,13 @@ func main() {
 	}
 
 	token := viper.Get("token").(string)
-	fmt.Print("token=" + token + "\r\n")
+	fmt.Println("token=" + token)
 
 	debug_channel = viper.Get("debugChannel").(string)
-	fmt.Print("debugChannel=" + debug_channel + "\r\n")
+	fmt.Println("debugChannel=" + debug_channel)
 
 	talking_channel = viper.Get("talkingChannel").(string)
-	fmt.Print("talkingChannel=" + talking_channel + "\r\n")
+	fmt.Println("talkingChannel=" + talking_channel)
 
 	dg, err := discordgo.New("Bot " + token)
 	if err != nil {
@@ -55,6 +69,7 @@ func main() {
 		fmt.Println("error opening connection,", err)
 		return
 	}
+	gSession = dg
 
 	fmt.Println("群主上线.")
 	dg.ChannelMessageSend(talking_channel, "<:xyx:389356458539614208>")
@@ -68,10 +83,78 @@ func main() {
 	dg.Close()
 }
 
-func ready(s *discordgo.Session, event *discordgo.Ready) {
-	s.ChannelMessageSend(debug_channel, "今天的女装已经准备好了，请各位赶快领取吧")
-	s.UpdateStatus(0, "女装山脉IV")
+var clockInput = make(chan interface{})
+
+var startMessage = []string{
+	"今天的女装已经准备好了，请各位赶快领取吧",
+	"今天的女装，啧啧，是女仆装哦，请各位快来领取吧",
+	"今天。。哇！有兔耳欸！请各位快来领取吧",
+	"今天是普通的水手服呢，请各位赶紧换好",
 }
+
+var gameName = []string{
+	"女装山脉IV",
+	"女装传说",
+	"女装破环神III",
+	"女装英雄",
+	"女装先锋",
+	"女装争霸",
+	"女装的远征",
+	"女装王座",
+	"荒岛女装",
+	"坎巴拉女装计划",
+	"女装骑士",
+	"微软模拟女装",
+	"微软女装飞行",
+	"女装谷物语",
+}
+
+func (*qunzhu) newStatus() {
+	gSession.UpdateStatus(0, gameName[rand.Intn(len(gameName))])
+}
+
+func (*qunzhu) talk(channel string, str string, speed int) {
+	go func(channel string, str string, speed int) {
+		tyrael.boring /= 4
+		<-time.After(time.Millisecond * time.Duration(speed) * time.Duration(len(str)))
+		gSession.ChannelMessageSend(channel, str)
+	}(channel, str, speed)
+}
+
+func ready(s *discordgo.Session, event *discordgo.Ready) {
+	s.ChannelMessageSend(debug_channel, startMessage[rand.Intn(len(startMessage))])
+	s.UpdateStatus(0, gameName[rand.Intn(len(gameName))])
+	go clock(clockInput)
+}
+
+func clock(input chan interface{}) {
+	min := time.NewTicker(1 * time.Minute)
+	halfhour := time.NewTicker(29 * time.Minute)
+	for {
+		select {
+		case <-min.C:
+			if tyrael.sleeping == 0 {
+				tyrael.silence += 1
+				tyrael.boring += 1
+				if rand.Intn(107) < tyrael.boring {
+					tyrael.boring /= 4
+					gSession.ChannelMessageSend(talking_channel, IdleTalk())
+				}
+			} else {
+				tyrael.sleeping += 1
+			}
+		case <-halfhour.C:
+			if tyrael.sleeping == 0 {
+				tyrael.newStatus()
+			}
+		}
+	}
+}
+
+const (
+	pic_p  int = 15
+	talk_p int = 10
+)
 
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.ID == s.State.User.ID {
@@ -86,49 +169,40 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		fmt.Printf("图片尺寸:%dx%d\n", v.Width, v.Height)
 	}
 
-	if !freeze && m.ChannelID == talking_channel {
+	if !m.Author.Bot && m.ChannelID == talking_channel {
+		tyrael.silence = 0
+	}
+
+	if !tyrael.freeze && m.ChannelID == talking_channel {
 		// 图片
 		if len(m.Attachments) > 0 && m.Attachments[0].Width > 0 {
-			if rand.Intn(100) < 15 {
-				go func() {
-					str := PicTalk()
-					<-time.After(time.Millisecond * 500 * time.Duration(len(str)))
-					s.ChannelMessageSend(m.ChannelID, str)
-				}()
+			if rand.Intn(100) < pic_p {
+				tyrael.talk(m.ChannelID, PicTalk(), 500)
 			}
 		}
-		// m.Type
 		// 特定人识别
 		if len(m.Content) > 0 && IsVip(m.Author.ID) {
 			rands := rand.Intn(100)
-			fmt.Printf("rands=%d\n", rands)
-			if rands < 10 {
-				go func() {
-					str := Talk(m.Author.ID, m.Content)
-					<-time.After(time.Millisecond * 300 * time.Duration(len(str)))
-					s.ChannelMessageSend(m.ChannelID, str)
-				}()
-			}
-		} else {
-			if rand.Intn(100) < 5 {
-				s.ChannelMessageSend(m.ChannelID, IdleTalk())
+			fmt.Printf("%d:%d\n", rands, talk_p)
+			if rands < talk_p {
+				tyrael.talk(m.ChannelID, Talk(m.Author.ID, m.Content), 300)
 			}
 		}
 	}
 
 	// 临时禁言用
 	if m.Author.ID == "377366407089881088" {
-		if !freeze && m.Content == "一二三木头人" {
-			freeze = true
+		if !tyrael.freeze && m.Content == "一二三木头人" {
+			tyrael.freeze = true
 			s.ChannelMessageSend(debug_channel, "唔，呜呜唔，唔~~~")
 		}
-		if freeze && m.Content == "让他说话" {
-			freeze = false
+		if tyrael.freeze && m.Content == "让他说话" {
+			tyrael.freeze = false
 			s.ChannelMessageSend(debug_channel, "呜~~~啊~~~憋死我了")
 		}
 	}
 
-	// If the message is "pong" reply with "Ping!"
+	// 愿此bot寿与天齐
 	if m.Content == "苟利国家生死以" {
 		s.ChannelMessageSend(m.ChannelID, "岂因祸福避趋之")
 	}
