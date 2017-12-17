@@ -72,8 +72,11 @@ func main() {
 	gSession = dg
 
 	fmt.Println("群主上线.")
-	dg.ChannelMessageSend(talking_channel, "<:xyx:389356458539614208>")
-
+	msg, _ := dg.ChannelMessageSend(talking_channel, "前方高能反应，非战斗人员请迅速撤离")
+	go func() {
+		<-time.After(time.Second * 5)
+		dg.ChannelMessageDelete(msg.ChannelID, msg.ID)
+	}()
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-sc
