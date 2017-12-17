@@ -162,6 +162,8 @@ func clock(input chan interface{}) {
 						gSession.ChannelMessageSend(talking_channel, fmt.Sprintf("哈欠，才睡了%d个多小时，好困", tyrael.sleeping/60))
 						tyrael.newStatus()
 						tyrael.sleeping = 0
+						tyrael.silence = 0
+						tyrael.boring = 0
 					}
 				}
 			}
