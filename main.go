@@ -85,6 +85,7 @@ func main() {
 
 var clockInput = make(chan interface{})
 
+// 启动信息
 var startMessage = []string{
 	"今天的女装已经准备好了，请各位赶快领取吧",
 	"今天的女装，啧啧，是女仆装哦，请各位快来领取吧",
@@ -92,6 +93,7 @@ var startMessage = []string{
 	"今天是普通的水手服呢，请各位赶紧换好",
 }
 
+// 随机状态
 var gameName = []string{
 	"女装山脉IV",
 	"女装传说",
@@ -107,6 +109,11 @@ var gameName = []string{
 	"微软模拟女装",
 	"微软女装飞行",
 	"女装谷物语",
+}
+
+// 被吵醒的回复
+var forceWakeup = []string{
+	"哇，你们不用睡觉的么",
 }
 
 func (*qunzhu) newStatus() {
@@ -135,6 +142,11 @@ func clock(input chan interface{}) {
 		case <-min.C:
 			if tyrael.sleeping == 0 {
 				tyrael.silence += 1
+				// 休眠模式
+				if tyrael.silence > 54 {
+					tyrael.sleeping += 1
+					gSession.UpdateStatus(0, "打瞌睡Z.z.z..")
+				}
 				tyrael.boring += 1
 				if rand.Intn(107) < tyrael.boring {
 					tyrael.boring /= 4
@@ -142,6 +154,13 @@ func clock(input chan interface{}) {
 				}
 			} else {
 				tyrael.sleeping += 1
+				if tyrael.sleeping > 330 {
+					if rand.Intn(300) < tyrael.sleeping-330 {
+						gSession.ChannelMessageSend(talking_channel, fmt.Sprintf("哈欠，才睡了%d个多小时，好困", tyrael.sleeping/60))
+						tyrael.newStatus()
+						tyrael.sleeping = 0
+					}
+				}
 			}
 		case <-halfhour.C:
 			if tyrael.sleeping == 0 {
@@ -171,6 +190,13 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	if !m.Author.Bot && m.ChannelID == talking_channel {
 		tyrael.silence = 0
+		if tyrael.sleeping > 0 {
+			if rand.Intn(100) < 10 {
+				tyrael.sleeping = 0
+				tyrael.talk(m.ChannelID, forceWakeup[rand.Intn(len(forceWakeup))], 300)
+				tyrael.newStatus()
+			}
+		}
 	}
 
 	if !tyrael.freeze && m.ChannelID == talking_channel {
