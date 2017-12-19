@@ -158,14 +158,16 @@ func clock(input chan interface{}) {
 					gSession.UpdateStatus(0, "打瞌睡Z.z.z..")
 				}
 				tyrael.boring += 1
-				if rand.Intn(107) < tyrael.boring {
+				if rand.Intn(207) < tyrael.boring {
 					tyrael.boring /= 4
-					gSession.ChannelMessageSend(talking_channel, IdleTalk())
+					if !tyrael.freeze {
+						gSession.ChannelMessageSend(talking_channel, IdleTalk())
+					}
 				}
 			} else {
 				tyrael.sleeping += 1
 				if tyrael.sleeping > 330 {
-					if rand.Intn(300) < tyrael.sleeping-330 {
+					if rand.Intn(1000) < tyrael.sleeping-330 {
 						gSession.ChannelMessageSend(talking_channel, fmt.Sprintf("哈欠，才睡了%d个多小时，好困", tyrael.sleeping/60))
 						tyrael.newStatus()
 						tyrael.sleeping = 0
@@ -236,7 +238,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 		if tyrael.freeze && m.Content == "让他说话" {
 			tyrael.freeze = false
-			s.ChannelMessageSend(debug_channel, "呜~~~啊~~~憋死我了")
+			s.ChannelMessageSend(debug_channel, "呜~~ ~啊~~ ~憋死我了")
 		}
 	}
 
