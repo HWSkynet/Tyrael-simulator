@@ -184,11 +184,6 @@ func clock(input chan interface{}) {
 	}
 }
 
-const (
-	pic_p  int = 15
-	talk_p int = 10
-)
-
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.ID == s.State.User.ID {
 		return
@@ -216,16 +211,16 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if !tyrael.freeze && m.ChannelID == talking_channel {
 		// 图片
 		if len(m.Attachments) > 0 && m.Attachments[0].Width > 0 {
-			if rand.Intn(100) < pic_p {
+			if rand.Intn(100) < 15 {
 				tyrael.talk(m.ChannelID, PicTalk(), 500)
 			}
 		}
 		// 特定人识别
 		if len(m.Content) > 0 && IsVip(m.Author.ID) {
 			rands := rand.Intn(100)
-			fmt.Printf("%d:%d\n", rands, talk_p)
-			if rands < talk_p {
-				tyrael.talk(m.ChannelID, Talk(m.Author.ID, m.Content), 300)
+			words := Talk(m.Author.ID, m.Content, rands)
+			if len(words) > 0 {
+				tyrael.talk(m.ChannelID, words, 300)
 			}
 		}
 	}

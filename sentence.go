@@ -28,16 +28,21 @@ var pic = []string{
 	"男的？",
 }
 
+type keyword_p struct {
+	w string // 关键词
+	p int    // 触发概率
+}
+
 type keywords struct {
 	defaults     []string
-	keywords_map map[string][]string
+	keywords_map map[keyword_p][]string
 }
 
 var xianii keywords = keywords{
 	defaults: []string{"我觉的下限说的很对"},
-	keywords_map: map[string][]string{
-		"下限不会": {"还有下限不会的嘛？穿上小裙子让六花教你", "还有下限不会的嘛？让六花穿上小裙子教你呀"},
-		"不会":   {"还有下限不会的？让六花穿上小裙子教你", "还有下限不会的嘛？让六花穿上小裙子教你呀"},
+	keywords_map: map[keyword_p][]string{
+		{"下限不会", 40}: {"还有下限不会的嘛？穿上小裙子让六花教你", "还有下限不会的嘛？让六花穿上小裙子教你呀"},
+		{"不会", 20}:   {"还有下限不会的？让六花穿上小裙子教你", "还有下限不会的嘛？让六花穿上小裙子教你呀"},
 	},
 }
 
@@ -109,23 +114,24 @@ var banban keywords = keywords{
 		"斑斑好厉害",
 		"斑斑说的也没错啊",
 	},
-	keywords_map: map[string][]string{
-		"群主": {"斑斑又在黑我", "斑斑怎么又黑我", "斑斑怎么老是黑我"},
-		"女装": {"斑斑的学习就是水群", "斑斑爆照呀"},
-		"裙":  {"斑斑不是在看书嘛"},
-		"大佬": {"斑斑小心被请喝茶"},
-		"飞":  {"斑斑小心被请喝茶"},
-		"▽":  {"斑斑真可爱"},
-		"☆":  {"斑斑太可爱了"},
+	keywords_map: map[keyword_p][]string{
+		{"群主", 30}: {"斑斑又在黑我", "斑斑怎么又黑我", "斑斑怎么老是黑我"},
+		{"女装", 20}: {"斑斑的学习就是水群", "斑斑爆照呀"},
+		{"裙", 20}:  {"斑斑不是在看书嘛"},
+		{"大佬", 20}: {"斑斑小心被请喝茶"},
+		{"油管", 30}: {"斑斑小心被请喝茶"},
+		{"飞", 30}:  {"斑斑小心被请喝茶"},
+		{"▽", 40}:  {"斑斑真可爱"},
+		{"☆", 40}:  {"斑斑太可爱了"},
 	},
 }
 var qianyunzi keywords = keywords{
 	defaults: []string{
 		"噫。浅云",
 	},
-	keywords_map: map[string][]string{
-		"女装": {"浅云还没女装么"},
-		"裙":  {"浅云你的小裙子呢"},
+	keywords_map: map[keyword_p][]string{
+		{"女装", 30}: {"浅云还没女装么"},
+		{"裙", 30}:  {"浅云你的小裙子呢"},
 	},
 }
 var xiangyu keywords = keywords{
@@ -133,8 +139,8 @@ var xiangyu keywords = keywords{
 		"香芋快女装",
 		"香芋怎么还没女装呢？(歪头",
 	},
-	keywords_map: map[string][]string{
-		"裙": {"香芋你的小裙子呢"},
+	keywords_map: map[keyword_p][]string{
+		{"裙", 30}: {"香芋你的小裙子呢"},
 	},
 }
 
@@ -178,6 +184,10 @@ var id2name = map[string]string{
 	"377366407089881088": "下限",
 }
 
+const (
+	talk_p int = 10
+)
+
 func IsVip(id string) bool {
 	if _, ok := id2name[id]; ok {
 		return true
@@ -194,18 +204,24 @@ func IdleTalk() string {
 	return idle[rand.Intn(len(idle))]
 }
 
-func Talk(id string, word string) string {
+func Talk(id string, word string, p int) string {
 	if IsVip(id) {
 		// 获取小可爱的反馈结构体
 		cute := name2str[id2name[id]]
 		// 找到关键词则使用对应关键词的回复
 		for k, v := range cute.keywords_map {
-			if strings.Contains(word, k) {
-				return v[rand.Intn(len(v))]
+			if strings.Contains(word, k.w) {
+				if p < k.p {
+					return v[rand.Intn(len(v))]
+				}
+				return ""
+
 			}
 		}
-		// 否则使用默认列表回复
-		return cute.defaults[rand.Intn(len(cute.defaults))]
+		if p < talk_p {
+			return cute.defaults[rand.Intn(len(cute.defaults))]
+		}
+		return ""
 	} else {
 		return ""
 	}
