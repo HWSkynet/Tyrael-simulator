@@ -57,8 +57,19 @@ func main() {
 	fmt.Println("talkingChannel=" + talking_channel)
 
 	viper.SetConfigName("version")
-	viper.SetConfigType("json")
+	viper.SetDefault("version", "unknown")
+	viper.SetDefault("old", "unknown")
+	viper.ReadInConfig()
+
 	tyrael.version = viper.Get("version").(string)
+	oldVersion := viper.Get("old").(string)
+
+	var newVersion bool
+	if oldVersion == tyrael.version {
+		newVersion = false
+	} else {
+		newVersion = true
+	}
 
 	dg, err := discordgo.New("Bot " + token)
 	if err != nil {
@@ -77,8 +88,11 @@ func main() {
 	gSession = dg
 
 	fmt.Println("群主上线.")
+	if newVersion {
+		dg.ChannelMessageSend(debug_channel, "升级成功！\n旧版本:"+oldVersion+"\n当前版本:"+tyrael.version)
+		viper.Set("old", tyrael.version)
+	}
 
-	dg.ChannelMessageSend(debug_channel, "当前版本:"+tyrael.version)
 	msg, _ := dg.ChannelMessageSend(talking_channel, "前方高能反应，非战斗人员请迅速撤离")
 	go func() {
 		<-time.After(time.Second * 5)
@@ -167,7 +181,7 @@ func clock(input chan interface{}) {
 			} else {
 				tyrael.sleeping += 1
 				if tyrael.sleeping > 330 {
-					if rand.Intn(1000) < tyrael.sleeping-330 {
+					if rand.Intn(2000) < tyrael.sleeping-330 {
 						gSession.ChannelMessageSend(talking_channel, fmt.Sprintf("哈欠，才睡了%d个多小时，好困", tyrael.sleeping/60))
 						tyrael.newStatus()
 						tyrael.sleeping = 0
@@ -233,7 +247,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 		if tyrael.freeze && m.Content == "让他说话" {
 			tyrael.freeze = false
-			s.ChannelMessageSend(debug_channel, "呜~~ ~啊~~ ~憋死我了")
+			s.ChannelMessageSend(debug_channel, "呜~呜嗯~ 嗯~~ 啊~ 憋死我了")
 		}
 	}
 
