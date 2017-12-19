@@ -18,6 +18,7 @@ var debug_channel string
 var talking_channel string
 
 type qunzhu struct {
+	version  string
 	freeze   bool
 	boring   int
 	sleeping int
@@ -38,8 +39,8 @@ func main() {
 	viper.SetDefault("token", 0)
 	viper.SetDefault("debugChannel", 0)
 	viper.SetDefault("talkingChannel", 0)
-	viper.SetConfigType("json")
 	viper.SetConfigName("config")
+	viper.SetConfigType("json")
 	viper.AddConfigPath(".")
 	err := viper.ReadInConfig() // Find and read the config file
 	if err != nil {             // Handle errors reading the config file
@@ -54,6 +55,10 @@ func main() {
 
 	talking_channel = viper.Get("talkingChannel").(string)
 	fmt.Println("talkingChannel=" + talking_channel)
+
+	viper.SetConfigName("version")
+	viper.SetConfigType("json")
+	tyrael.version = viper.Get("version").(string)
 
 	dg, err := discordgo.New("Bot " + token)
 	if err != nil {
@@ -72,6 +77,8 @@ func main() {
 	gSession = dg
 
 	fmt.Println("群主上线.")
+
+	dg.ChannelMessageSend(debug_channel, "当前版本:"+tyrael.version)
 	msg, _ := dg.ChannelMessageSend(talking_channel, "前方高能反应，非战斗人员请迅速撤离")
 	go func() {
 		<-time.After(time.Second * 5)
