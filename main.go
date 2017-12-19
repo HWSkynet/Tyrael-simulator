@@ -56,7 +56,10 @@ func main() {
 	talking_channel = viper.Get("talkingChannel").(string)
 	fmt.Println("talkingChannel=" + talking_channel)
 
+	viper.Reset()
 	viper.SetConfigName("version")
+	viper.SetConfigType("json")
+	viper.AddConfigPath(".")
 	viper.SetDefault("version", "unknown")
 	viper.SetDefault("old", "unknown")
 	viper.ReadInConfig()
@@ -91,6 +94,7 @@ func main() {
 	if newVersion {
 		dg.ChannelMessageSend(debug_channel, "升级成功！\n旧版本:"+oldVersion+"\n当前版本:"+tyrael.version)
 		viper.Set("old", tyrael.version)
+		viper.WriteConfig()
 	}
 
 	msg, _ := dg.ChannelMessageSend(talking_channel, "前方高能反应，非战斗人员请迅速撤离")
