@@ -12,6 +12,8 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/spf13/viper"
+
+	//"github.com/HWSkynet/cpgame"
 )
 
 var debug_channel string
@@ -23,6 +25,7 @@ type qunzhu struct {
 	boring   int
 	sleeping int
 	silence  int
+	shy      int
 }
 
 var tyrael qunzhu = qunzhu{
@@ -30,6 +33,7 @@ var tyrael qunzhu = qunzhu{
 	boring:   0,
 	sleeping: 0,
 	silence:  0,
+	shy:      0,
 }
 
 var gSession *discordgo.Session
@@ -165,6 +169,7 @@ func ready(s *discordgo.Session, event *discordgo.Ready) {
 func clock(input chan interface{}) {
 	min := time.NewTicker(1 * time.Minute)
 	halfhour := time.NewTicker(29 * time.Minute)
+	var lastBoring *discordgo.Message
 	for {
 		select {
 		case <-min.C:
@@ -179,14 +184,25 @@ func clock(input chan interface{}) {
 				if rand.Intn(207) < tyrael.boring {
 					tyrael.boring /= 4
 					if !tyrael.freeze {
-						gSession.ChannelMessageSend(talking_channel, IdleTalk())
+						if tyrael.shy > 0 {
+							gSession.ChannelMessageDelete(talking_channel, lastBoring.ID)
+							tyrael.shy = 0
+						}
+						lastBoring, _ = gSession.ChannelMessageSend(talking_channel, IdleTalk())
+						tyrael.shy += 1
 					}
 				}
 			} else {
 				tyrael.sleeping += 1
 				if tyrael.sleeping > 330 {
-					if rand.Intn(2000) < tyrael.sleeping-330 {
-						gSession.ChannelMessageSend(talking_channel, fmt.Sprintf("哈欠，才睡了%d个多小时，好困", tyrael.sleeping/60))
+					if rand.Intn(5000) < tyrael.sleeping-330 {
+						if tyrael.sleeping/60 < 7 {
+							gSession.ChannelMessageSend(talking_channel, fmt.Sprintf("哈欠，才睡了%d个多小时，好困", tyrael.sleeping/60))
+						} else if tyrael.sleeping/60 > 8 {
+							gSession.ChannelMessageSend(talking_channel, fmt.Sprintf("哇，不小心睡了%d个多小时", tyrael.sleeping/60))
+						} else {
+							gSession.ChannelMessageSend(talking_channel, "<:xyx:389356458539614208><:xyx:389356458539614208><:xyx:389356458539614208>")
+						}
 						tyrael.newStatus()
 						tyrael.sleeping = 0
 						tyrael.silence = 0
@@ -217,6 +233,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	if !m.Author.Bot && m.ChannelID == talking_channel {
 		tyrael.silence = 0
+		tyrael.shy = 0
 		if tyrael.sleeping > 0 {
 			if rand.Intn(100) < 10 {
 				tyrael.sleeping = 0
