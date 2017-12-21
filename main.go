@@ -16,6 +16,8 @@ import (
 	//"github.com/HWSkynet/cpgame"
 )
 
+const version string = "Alpha build 12204"
+
 var debug_channel string
 var talking_channel string
 
@@ -43,6 +45,7 @@ func main() {
 	viper.SetDefault("token", 0)
 	viper.SetDefault("debugChannel", 0)
 	viper.SetDefault("talkingChannel", 0)
+	viper.SetDefault("oldversion", "unknown")
 	viper.SetConfigName("config")
 	viper.SetConfigType("json")
 	viper.AddConfigPath(".")
@@ -60,16 +63,8 @@ func main() {
 	talking_channel = viper.Get("talkingChannel").(string)
 	fmt.Println("talkingChannel=" + talking_channel)
 
-	viper.Reset()
-	viper.SetConfigName("version")
-	viper.SetConfigType("json")
-	viper.AddConfigPath(".")
-	viper.SetDefault("version", "unknown")
-	viper.SetDefault("old", "unknown")
-	viper.ReadInConfig()
-
-	tyrael.version = viper.Get("version").(string)
-	oldVersion := viper.Get("old").(string)
+	oldVersion := viper.Get("oldversion").(string)
+	tyrael.version = version
 
 	var newVersion bool
 	if oldVersion == tyrael.version {
@@ -97,9 +92,11 @@ func main() {
 	fmt.Println("群主上线.")
 	if newVersion {
 		dg.ChannelMessageSend(debug_channel, "升级成功！\n旧版本:"+oldVersion+"\n当前版本:"+tyrael.version)
-		viper.Set("old", tyrael.version)
+		viper.Set("oldversion", tyrael.version)
 		viper.WriteConfig()
 	}
+	viper.Reset()
+
 
 	msg, _ := dg.ChannelMessageSend(talking_channel, "前方高能反应，非战斗人员请迅速撤离")
 	go func() {

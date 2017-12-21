@@ -4,6 +4,7 @@
 *.so
 *.dylib
 config.json
+version.json
 save
 
 # Test binary, build with `go test -c`
