@@ -28,6 +28,7 @@ type qunzhu struct {
 	sleeping int
 	silence  int
 	shy      int
+	energy   int // 元气
 }
 
 var tyrael qunzhu = qunzhu{
@@ -36,6 +37,7 @@ var tyrael qunzhu = qunzhu{
 	sleeping: 0,
 	silence:  0,
 	shy:      0,
+	energy:   1000,
 }
 
 var gSession *discordgo.Session
@@ -97,6 +99,8 @@ func main() {
 	}
 	viper.Reset()
 
+	tyrael.initEnergy()
+	dg.ChannelMessageSend(debug_channel, fmt.Sprintf("当前元气值:%d", tyrael.energy))
 
 	msg, _ := dg.ChannelMessageSend(talking_channel, "前方高能反应，非战斗人员请迅速撤离")
 	go func() {
@@ -163,23 +167,44 @@ func ready(s *discordgo.Session, event *discordgo.Ready) {
 	go clock(clockInput)
 }
 
+func getMinute() int {
+	h, m, _ := time.Now().Clock()
+	return h*60 + m
+}
+
+func (self *qunzhu) initEnergy() {
+	m := getMinute()
+	if m < 420 || m > 1380 {
+		self.energy = rand.Intn(60)
+	} else {
+		self.energy = (700 + rand.Intn(150)) * (m - 420) / 1000
+	}
+}
+
 func clock(input chan interface{}) {
 	min := time.NewTicker(1 * time.Minute)
-	halfhour := time.NewTicker(29 * time.Minute)
+	halfhour := time.NewTicker(23 * time.Minute)
 	var lastBoring *discordgo.Message
 	for {
 		select {
 		case <-min.C:
+			if getMinute() == 0 {
+				gSession.ChannelMessageSend(debug_channel, fmt.Sprintf("零时迷子启动前，元气值：%d", tyrael.energy))
+				tyrael.energy /= 4 // 零时迷子
+				gSession.ChannelMessageSend(debug_channel, fmt.Sprintf("零时迷子启动后，元气值：%d", tyrael.energy))
+			}
 			if tyrael.sleeping == 0 {
+				tyrael.energy -= 1
 				tyrael.silence += 1
-				// 休眠模式
-				if tyrael.silence > 54 {
-					tyrael.sleeping += 1
-					gSession.UpdateStatus(0, "打瞌睡Z.z.z..")
-				}
 				tyrael.boring += 1
-				if rand.Intn(207) < tyrael.boring {
-					tyrael.boring /= 4
+				if rand.Intn(60) > tyrael.energy { // 累得睡着
+					tyrael.sleeping += 1
+					tyrael.boring = 0
+					gSession.UpdateStatus(0, "睡着了Z.z.z.")
+				} else if tyrael.boring > 40+rand.Intn(100) { // 无聊得打瞌睡
+					tyrael.sleeping += 1
+					gSession.UpdateStatus(0, "打瞌睡Z.z.z.")
+				} else if rand.Intn(100) < 5 {
 					if !tyrael.freeze {
 						if tyrael.shy > 0 {
 							gSession.ChannelMessageDelete(talking_channel, lastBoring.ID)
@@ -191,12 +216,14 @@ func clock(input chan interface{}) {
 				}
 			} else {
 				tyrael.sleeping += 1
-				if tyrael.sleeping > 330 {
-					if rand.Intn(5000) < tyrael.sleeping-330 {
+				tyrael.energy += 1
+				if tyrael.boring < 30 {
+					tyrael.energy += 1
+					if tyrael.energy > 800+rand.Intn(160) {
 						if tyrael.sleeping/60 < 7 {
-							gSession.ChannelMessageSend(talking_channel, fmt.Sprintf("哈欠，才睡了%d个多小时，好困", tyrael.sleeping/60))
+							gSession.ChannelMessageSend(talking_channel, fmt.Sprintf("哈欠，虽然只睡了%d个多小时，但是感觉元气满满的呢", tyrael.sleeping/60))
 						} else if tyrael.sleeping/60 > 8 {
-							gSession.ChannelMessageSend(talking_channel, fmt.Sprintf("哇，不小心睡了%d个多小时", tyrael.sleeping/60))
+							gSession.ChannelMessageSend(talking_channel, fmt.Sprintf("哇，不小心睡了%d个多小时，糟了糟了", tyrael.sleeping/60))
 						} else {
 							gSession.ChannelMessageSend(talking_channel, "<:xyx:389356458539614208><:xyx:389356458539614208><:xyx:389356458539614208>")
 						}
@@ -204,6 +231,15 @@ func clock(input chan interface{}) {
 						tyrael.sleeping = 0
 						tyrael.silence = 0
 						tyrael.boring = 0
+					}
+				} else {
+					tyrael.energy -= 1
+					if rand.Intn(1000) < tyrael.boring {
+						tyrael.sleeping = 0
+						tyrael.silence = 0
+						tyrael.boring = 0
+						lastBoring, _ = gSession.ChannelMessageSend(talking_channel, "啊，好无聊啊")
+						tyrael.shy += 1
 					}
 				}
 			}
@@ -232,10 +268,23 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		tyrael.silence = 0
 		tyrael.shy = 0
 		if tyrael.sleeping > 0 {
-			if rand.Intn(100) < 10 {
-				tyrael.sleeping = 0
-				tyrael.talk(m.ChannelID, forceWakeup[rand.Intn(len(forceWakeup))], 300)
-				tyrael.newStatus()
+			if tyrael.boring > 30 {
+				if rand.Intn(100) < 20 {
+					tyrael.sleeping = 0
+					tyrael.boring /= 2
+					tyrael.talk(m.ChannelID, "<:xyx:389356458539614208>", 300)
+					tyrael.newStatus()
+				}
+			} else {
+				if rand.Intn(100) < 9 {
+					tyrael.sleeping = 0
+					tyrael.talk(m.ChannelID, forceWakeup[rand.Intn(len(forceWakeup))], 300)
+					tyrael.newStatus()
+				}
+			}
+		} else {
+			if tyrael.boring > 0 {
+				tyrael.boring -= 1
 			}
 		}
 	}
