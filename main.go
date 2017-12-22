@@ -3,17 +3,15 @@ package main
 import (
 	"fmt"
 	//"io/ioutil"
+	"math/rand"
 	"os"
 	"os/signal"
-	//"strings"
-	"math/rand"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/spf13/viper"
-
-	//"github.com/HWSkynet/cpgame"
 )
 
 const version string = "Alpha build 12204"
@@ -40,7 +38,7 @@ var tyrael qunzhu = qunzhu{
 	energy:   1000,
 }
 
-var gSession *discordgo.Session
+var GSession *discordgo.Session
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
@@ -89,7 +87,7 @@ func main() {
 		fmt.Println("error opening connection,", err)
 		return
 	}
-	gSession = dg
+	GSession = dg
 
 	fmt.Println("群主上线.")
 	if newVersion {
@@ -150,14 +148,14 @@ var forceWakeup = []string{
 }
 
 func (*qunzhu) newStatus() {
-	gSession.UpdateStatus(0, gameName[rand.Intn(len(gameName))])
+	GSession.UpdateStatus(0, gameName[rand.Intn(len(gameName))])
 }
 
 func (*qunzhu) talk(channel string, str string, speed int) {
 	go func(channel string, str string, speed int) {
 		tyrael.boring /= 4
 		<-time.After(time.Millisecond * time.Duration(speed) * time.Duration(len(str)))
-		gSession.ChannelMessageSend(channel, str)
+		GSession.ChannelMessageSend(channel, str)
 	}(channel, str, speed)
 }
 
@@ -189,9 +187,10 @@ func clock(input chan interface{}) {
 		select {
 		case <-min.C:
 			if getMinute() == 0 {
-				gSession.ChannelMessageSend(debug_channel, fmt.Sprintf("零时迷子启动前，元气值：%d", tyrael.energy))
+				GSession.ChannelMessageSend(debug_channel, fmt.Sprintf("零时迷子即将启动\n当前元气值：%d", tyrael.energy))
 				tyrael.energy /= 4 // 零时迷子
-				gSession.ChannelMessageSend(debug_channel, fmt.Sprintf("零时迷子启动后，元气值：%d", tyrael.energy))
+				tyrael.talk(debug_channel, "零时迷子启动", 300)
+				tyrael.talk(debug_channel, fmt.Sprintf("当前元气值：%d", tyrael.energy), 600)
 			}
 			if tyrael.sleeping == 0 {
 				tyrael.energy -= 1
@@ -200,17 +199,17 @@ func clock(input chan interface{}) {
 				if rand.Intn(60) > tyrael.energy { // 累得睡着
 					tyrael.sleeping += 1
 					tyrael.boring = 0
-					gSession.UpdateStatus(0, "睡着了Z.z.z.")
+					GSession.UpdateStatus(0, "睡着了Z.z.z.")
 				} else if tyrael.boring > 40+rand.Intn(100) { // 无聊得打瞌睡
 					tyrael.sleeping += 1
-					gSession.UpdateStatus(0, "打瞌睡Z.z.z.")
+					GSession.UpdateStatus(0, "打瞌睡Z.z.z.")
 				} else if rand.Intn(100) < 5 {
 					if !tyrael.freeze {
 						if tyrael.shy > 0 {
-							gSession.ChannelMessageDelete(talking_channel, lastBoring.ID)
+							GSession.ChannelMessageDelete(talking_channel, lastBoring.ID)
 							tyrael.shy = 0
 						}
-						lastBoring, _ = gSession.ChannelMessageSend(talking_channel, IdleTalk())
+						lastBoring, _ = GSession.ChannelMessageSend(talking_channel, IdleTalk())
 						tyrael.shy += 1
 					}
 				}
@@ -221,11 +220,11 @@ func clock(input chan interface{}) {
 					tyrael.energy += 1
 					if tyrael.energy > 800+rand.Intn(160) {
 						if tyrael.sleeping/60 < 7 {
-							gSession.ChannelMessageSend(talking_channel, fmt.Sprintf("哈欠，虽然只睡了%d个多小时，但是感觉元气满满的呢", tyrael.sleeping/60))
+							GSession.ChannelMessageSend(talking_channel, fmt.Sprintf("哈欠，虽然只睡了%d个多小时，但是感觉元气满满的呢", tyrael.sleeping/60))
 						} else if tyrael.sleeping/60 > 8 {
-							gSession.ChannelMessageSend(talking_channel, fmt.Sprintf("哇，不小心睡了%d个多小时，糟了糟了", tyrael.sleeping/60))
+							GSession.ChannelMessageSend(talking_channel, fmt.Sprintf("哇，不小心睡了%d个多小时，糟了糟了", tyrael.sleeping/60))
 						} else {
-							gSession.ChannelMessageSend(talking_channel, "<:xyx:389356458539614208><:xyx:389356458539614208><:xyx:389356458539614208>")
+							GSession.ChannelMessageSend(talking_channel, "<:xyx:389356458539614208><:xyx:389356458539614208><:xyx:389356458539614208>")
 						}
 						tyrael.newStatus()
 						tyrael.sleeping = 0
@@ -238,7 +237,7 @@ func clock(input chan interface{}) {
 						tyrael.sleeping = 0
 						tyrael.silence = 0
 						tyrael.boring = 0
-						lastBoring, _ = gSession.ChannelMessageSend(talking_channel, "啊，好无聊啊")
+						lastBoring, _ = GSession.ChannelMessageSend(talking_channel, "啊，好无聊啊")
 						tyrael.shy += 1
 					}
 				}
@@ -255,8 +254,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.ID == s.State.User.ID {
 		return
 	}
-
-	fmt.Printf(m.Author.Username + ":" + m.Content + "\n")
+	channelName, _ := s.Channel(m.ChannelID).Name
+	fmt.Printf("[" + channelName + "]" + m.Author.Username + ":" + m.Content + "\n")
 	for _, v := range m.Embeds {
 		fmt.Printf(v.Type)
 	}
@@ -286,10 +285,25 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			if tyrael.boring > 0 {
 				tyrael.boring -= 1
 			}
+			if strings.Contains(m.Content, "来吃鸡吧") {
+				if GameState == "idle" {
+					GameNewRoom()
+					tyrael.talk(m.ChannelID, "吃鸡房间建立完成，现在可以加入战局", 100)
+				} else {
+					tyrael.talk(m.ChannelID, "请等待上一只鸡吃完", 300)
+				}
+			}
+			if strings.Contains(m.Content, "强制关闭战局") {
+				if GameState == "idle" {
+					tyrael.talk(m.ChannelID, "空即是色，施主怕是杂念太多", 100)
+				} else {
+					GameClear()
+					tyrael.talk(m.ChannelID, "世界，又归于和平...", 100)
+				}
+			}
 		}
 	}
-
-	if !tyrael.freeze && m.ChannelID == talking_channel {
+	if !tyrael.freeze && tyrael.sleeping == 0 && m.ChannelID == talking_channel {
 		// 图片
 		if len(m.Attachments) > 0 && m.Attachments[0].Width > 0 {
 			if rand.Intn(100) < 15 {
@@ -321,5 +335,9 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// 愿此bot寿与天齐
 	if m.Content == "苟利国家生死以" {
 		s.ChannelMessageSend(m.ChannelID, "岂因祸福避趋之")
+	}
+
+	if GameState != "idle" && m.ChannelID == GameChannel.ID {
+		GameRoomMessageHandler(s, m)
 	}
 }
