@@ -254,7 +254,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.ID == s.State.User.ID {
 		return
 	}
-	channelName, _ := s.Channel(m.ChannelID).Name
+	channel, _ := s.Channel(m.ChannelID)
+	channelName := channel.Name
 	fmt.Printf("[" + channelName + "]" + m.Author.Username + ":" + m.Content + "\n")
 	for _, v := range m.Embeds {
 		fmt.Printf(v.Type)
