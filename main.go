@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"os/signal"
-	"strings"
+	//"strings"
 	"syscall"
 	"time"
 
@@ -286,22 +286,6 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			if tyrael.boring > 0 {
 				tyrael.boring -= 1
 			}
-			if strings.Contains(m.Content, "来吃鸡吧") {
-				if GameState == "idle" {
-					GameNewRoom()
-					tyrael.talk(m.ChannelID, "吃鸡房间建立完成，现在可以加入战局", 100)
-				} else {
-					tyrael.talk(m.ChannelID, "请等待上一只鸡吃完", 300)
-				}
-			}
-			if strings.Contains(m.Content, "强制关闭战局") {
-				if GameState == "idle" {
-					tyrael.talk(m.ChannelID, "空即是色，施主怕是杂念太多", 100)
-				} else {
-					GameClear()
-					tyrael.talk(m.ChannelID, "世界，又归于和平...", 100)
-				}
-			}
 		}
 	}
 	if !tyrael.freeze && tyrael.sleeping == 0 && m.ChannelID == talking_channel {
@@ -336,9 +320,5 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// 愿此bot寿与天齐
 	if m.Content == "苟利国家生死以" {
 		s.ChannelMessageSend(m.ChannelID, "岂因祸福避趋之")
-	}
-
-	if GameState != "idle" && m.ChannelID == GameChannel.ID {
-		GameRoomMessageHandler(s, m)
 	}
 }
