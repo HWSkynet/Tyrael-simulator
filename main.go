@@ -207,7 +207,6 @@ func clock(input chan interface{}) {
 					if !tyrael.freeze {
 						if tyrael.shy > 0 {
 							GSession.ChannelMessageDelete(talking_channel, lastBoring.ID)
-							tyrael.shy = 0
 						}
 						lastBoring, _ = GSession.ChannelMessageSend(talking_channel, IdleTalk())
 						tyrael.shy += 1
