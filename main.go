@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const version string = "Alpha build 12271"
+const version string = "Alpha build 12280"
 
 var debug_channel string
 var talking_channel string
