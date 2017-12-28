@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const version string = "Alpha build 12280"
+const version string = "Alpha build 12291"
 
 var debug_channel string
 var talking_channel string
@@ -266,7 +266,14 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if !m.Author.Bot && m.ChannelID == talking_channel {
 		tyrael.silence = 0
 		tyrael.shy = 0
-		if tyrael.sleeping > 0 {
+		if m.Content == "元气？" {
+			s.ChannelMessageDelete(talking_channel, m.ID)
+			msg, _ := s.ChannelMessageSend(talking_channel, fmt.Sprintf("Current 元気 is %d です！", tyrael.energy))
+			go func() {
+				<-time.After(time.Second * 7)
+				s.ChannelMessageDelete(msg.ChannelID, msg.ID)
+			}()
+		} else if tyrael.sleeping > 0 {
 			if tyrael.boring > 30 {
 				if rand.Intn(100) < 20 {
 					tyrael.sleeping = 0
