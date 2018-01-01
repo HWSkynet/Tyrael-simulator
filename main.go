@@ -203,7 +203,9 @@ func clock(input chan interface{}) {
 					GSession.UpdateStatus(0, "打瞌睡Z.z.z.")
 				} else if rand.Intn(100) < 5 {
 					if !tyrael.freeze {
-						GSession.ChannelMessageDelete(talking_channel, lastBoring.ID)
+						if len(lastBoring.ID) > 0 {
+							GSession.ChannelMessageDelete(talking_channel, lastBoring.ID)
+						}
 						lastBoring, _ = GSession.ChannelMessageSend(talking_channel, IdleTalk())
 					}
 				}
