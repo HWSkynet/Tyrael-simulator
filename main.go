@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const version string = "Alpha build 12291"
+const version string = "Alpha build 12320"
 
 var debug_channel string
 var talking_channel string
@@ -25,7 +25,6 @@ type qunzhu struct {
 	boring   int
 	sleeping int
 	silence  int
-	shy      int
 	energy   int // 元气
 }
 
@@ -34,7 +33,6 @@ var tyrael qunzhu = qunzhu{
 	boring:   0,
 	sleeping: 0,
 	silence:  0,
-	shy:      0,
 	energy:   1000,
 }
 
@@ -205,11 +203,8 @@ func clock(input chan interface{}) {
 					GSession.UpdateStatus(0, "打瞌睡Z.z.z.")
 				} else if rand.Intn(100) < 5 {
 					if !tyrael.freeze {
-						if tyrael.shy > 0 {
-							GSession.ChannelMessageDelete(talking_channel, lastBoring.ID)
-						}
+						GSession.ChannelMessageDelete(talking_channel, lastBoring.ID)
 						lastBoring, _ = GSession.ChannelMessageSend(talking_channel, IdleTalk())
-						tyrael.shy += 1
 					}
 				}
 			} else {
@@ -237,7 +232,6 @@ func clock(input chan interface{}) {
 						tyrael.silence = 0
 						tyrael.boring = 0
 						lastBoring, _ = GSession.ChannelMessageSend(talking_channel, "啊，好无聊啊")
-						tyrael.shy += 1
 					}
 				}
 			}
@@ -265,7 +259,6 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	if !m.Author.Bot && m.ChannelID == talking_channel {
 		tyrael.silence = 0
-		tyrael.shy = 0
 		if m.Content == "元气？" {
 			s.ChannelMessageDelete(talking_channel, m.ID)
 			msg, _ := s.ChannelMessageSend(talking_channel, fmt.Sprintf("Current 元気 is %d です！", tyrael.energy))
