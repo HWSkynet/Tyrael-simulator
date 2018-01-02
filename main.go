@@ -180,7 +180,8 @@ func (self *qunzhu) initEnergy() {
 func clock(input chan interface{}) {
 	min := time.NewTicker(1 * time.Minute)
 	halfhour := time.NewTicker(23 * time.Minute)
-	var lastBoring *discordgo.Message
+	var lastBoring *discordgo.Message = nil
+
 	for {
 		select {
 		case <-min.C:
@@ -203,7 +204,7 @@ func clock(input chan interface{}) {
 					GSession.UpdateStatus(0, "打瞌睡Z.z.z.")
 				} else if rand.Intn(100) < 5 {
 					if !tyrael.freeze {
-						if len(lastBoring.ID) > 0 {
+						if lastBoring != nil {
 							GSession.ChannelMessageDelete(talking_channel, lastBoring.ID)
 						}
 						lastBoring, _ = GSession.ChannelMessageSend(talking_channel, IdleTalk())
