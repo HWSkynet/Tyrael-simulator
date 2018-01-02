@@ -150,7 +150,7 @@ func (*qunzhu) newStatus() {
 func (*qunzhu) talkThenEat(channel string, str string, sec int) {
 	go func(channel string, str string, sec int) {
 		msg, _ := GSession.ChannelMessageSend(channel, str)
-		<-time.After(time.Millisecond * time.Duration(sec))
+		<-time.After(time.Second * time.Duration(sec))
 		GSession.ChannelMessageDelete(channel, msg.ID)
 	}(channel, str, sec)
 }
