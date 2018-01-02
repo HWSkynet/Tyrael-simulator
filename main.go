@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const version string = "Alpha build 12320"
+const version string = "Alpha build 12331"
 
 var debug_channel string
 var talking_channel string
@@ -96,18 +96,16 @@ func main() {
 	viper.Reset()
 
 	tyrael.initEnergy()
-	dg.ChannelMessageSend(debug_channel, fmt.Sprintf("当前元气值:%d", tyrael.energy))
 
-	msg, _ := dg.ChannelMessageSend(talking_channel, "前方高能反应，非战斗人员请迅速撤离")
-	go func() {
-		<-time.After(time.Second * 5)
-		dg.ChannelMessageDelete(msg.ChannelID, msg.ID)
-	}()
+	tyrael.talkThenEat(debug_channel, fmt.Sprintf("当前元气值:%d", tyrael.energy), 7)
+
+	tyrael.talkThenEat(talking_channel, "前方高能反应，非战斗人员请迅速撤离", 5)
+
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-sc
 
-	fmt.Println("群主下线.")
+	fmt.Println("offline.")
 	dg.ChannelMessageSend(debug_channel, "群主下线.")
 	dg.Close()
 }
@@ -147,6 +145,14 @@ var forceWakeup = []string{
 
 func (*qunzhu) newStatus() {
 	GSession.UpdateStatus(0, gameName[rand.Intn(len(gameName))])
+}
+
+func (*qunzhu) talkThenEat(channel string, str string, sec int) {
+	go func(channel string, str string, sec int) {
+		msg, _ := GSession.ChannelMessageSend(channel, str)
+		<-time.After(time.Millisecond * time.Duration(sec))
+		GSession.ChannelMessageDelete(channel, msg.ID)
+	}(channel, str, sec)
 }
 
 func (*qunzhu) talk(channel string, str string, speed int) {
@@ -264,11 +270,9 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		tyrael.silence = 0
 		if m.Content == "元气？" {
 			s.ChannelMessageDelete(talking_channel, m.ID)
-			msg, _ := s.ChannelMessageSend(talking_channel, fmt.Sprintf("Current 元気 is %d です！", tyrael.energy))
-			go func() {
-				<-time.After(time.Second * 7)
-				s.ChannelMessageDelete(msg.ChannelID, msg.ID)
-			}()
+
+			tyrael.talkThenEat(talking_channel, fmt.Sprintf("Current 元気 is %d です！", tyrael.energy), 7)
+
 		} else if tyrael.sleeping > 0 {
 			if tyrael.boring > 30 {
 				if rand.Intn(100) < 20 {
@@ -311,11 +315,11 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.ID == "377366407089881088" {
 		if !tyrael.freeze && m.Content == "一二三木头人" {
 			tyrael.freeze = true
-			s.ChannelMessageSend(debug_channel, "唔，呜呜唔，唔~~~")
+			tyrael.talkThenEat(debug_channel, "唔，呜呜唔，唔~~~", 4)
 		}
 		if tyrael.freeze && m.Content == "让他说话" {
 			tyrael.freeze = false
-			s.ChannelMessageSend(debug_channel, "呜~呜嗯~ 嗯~~ 啊~ 憋死我了")
+			tyrael.talkThenEat(debug_channel, "呜~呜嗯~ 嗯~~ 啊~ 憋死我了", 4)
 		}
 	}
 
