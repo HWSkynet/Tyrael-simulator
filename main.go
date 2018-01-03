@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const version string = "Alpha build 12331"
+const version string = "Alpha build 12342"
 
 var debug_channel string
 var talking_channel string
@@ -215,6 +215,16 @@ func clock(input chan interface{}) {
 						}
 						lastBoring, _ = GSession.ChannelMessageSend(talking_channel, IdleTalk())
 					}
+				} else {
+					if rand.Intn(1000) < tyrael.boring {
+						tyrael.sleeping = 0
+						tyrael.silence = 0
+						tyrael.boring = 0
+						if lastBoring != nil {
+							GSession.ChannelMessageDelete(talking_channel, lastBoring.ID)
+						}
+						lastBoring, _ = GSession.ChannelMessageSend(talking_channel, "啊，好无聊啊")
+					}
 				}
 			} else {
 				tyrael.sleeping += 1
@@ -236,12 +246,6 @@ func clock(input chan interface{}) {
 					}
 				} else {
 					tyrael.energy -= 1
-					if rand.Intn(1000) < tyrael.boring {
-						tyrael.sleeping = 0
-						tyrael.silence = 0
-						tyrael.boring = 0
-						lastBoring, _ = GSession.ChannelMessageSend(talking_channel, "啊，好无聊啊")
-					}
 				}
 			}
 		case <-halfhour.C:
