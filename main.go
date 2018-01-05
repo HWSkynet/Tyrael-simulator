@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const version string = "Alpha build 12342"
+const version string = "Alpha build 12343"
 
 var debug_channel string
 var talking_channel string
@@ -210,7 +210,8 @@ func clock(input chan interface{}) {
 					GSession.UpdateStatus(0, "打瞌睡Z.z.z.")
 				} else if rand.Intn(100) < 5 {
 					if !tyrael.freeze {
-						if lastBoring != nil {
+						channel, _ := GSession.Channel(talking_channel)
+						if lastBoring != nil && lastBoring.ID == channel.LastMessageID {
 							GSession.ChannelMessageDelete(talking_channel, lastBoring.ID)
 						}
 						lastBoring, _ = GSession.ChannelMessageSend(talking_channel, IdleTalk())
@@ -220,7 +221,8 @@ func clock(input chan interface{}) {
 						tyrael.sleeping = 0
 						tyrael.silence = 0
 						tyrael.boring = 0
-						if lastBoring != nil {
+						channel, _ := GSession.Channel(talking_channel)
+						if lastBoring != nil && lastBoring.ID == channel.LastMessageID {
 							GSession.ChannelMessageDelete(talking_channel, lastBoring.ID)
 						}
 						lastBoring, _ = GSession.ChannelMessageSend(talking_channel, "啊，好无聊啊")
