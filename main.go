@@ -10,11 +10,13 @@ import (
 	"syscall"
 	"time"
 
+	"sync"
+
 	"github.com/bwmarrin/discordgo"
 	"github.com/spf13/viper"
 )
 
-const version string = "Alpha build 12343"
+const version string = "Alpha build 12357"
 
 var debug_channel string
 var talking_channel string
@@ -163,10 +165,13 @@ func (*qunzhu) talk(channel string, str string, speed int) {
 	}(channel, str, speed)
 }
 
+var once sync.Once
+
 func ready(s *discordgo.Session, event *discordgo.Ready) {
 	s.ChannelMessageSend(debug_channel, startMessage[rand.Intn(len(startMessage))])
 	s.UpdateStatus(0, gameName[rand.Intn(len(gameName))])
-	go clock(clockInput)
+	once.Do(func() { go clock(clockInput) })
+
 }
 
 func getMinute() int {
