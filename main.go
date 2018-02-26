@@ -16,7 +16,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const version string = "Alpha build 12357"
+const version string = "Alpha build 12357F"
 
 var debug_channel string
 var talking_channel string
@@ -267,7 +267,10 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.ID == s.State.User.ID {
 		return
 	}
-	channel, _ := s.Channel(m.ChannelID)
+	channel, err := s.Channel(m.ChannelID)
+	if err {
+		return
+	}
 	channelName := channel.Name
 	fmt.Printf("[" + channelName + "]" + m.Author.Username + ":" + m.Content + "\n")
 	for _, v := range m.Embeds {
