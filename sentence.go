@@ -64,7 +64,10 @@ type keywords struct {
 }
 
 var xianii keywords = keywords{
-	defaults: []string{"我觉的下限说的很对"},
+	defaults: []string{
+		"我觉的下限说的很对",
+		"赞美下限",
+	},
 	keywords_map: map[keyword_p][]string{
 		{"下限不会", 40}: {"还有下限不会的嘛？穿上小裙子让六花教你", "还有下限不会的嘛？让六花穿上小裙子教你呀"},
 		{"不会", 20}:   {"还有下限不会的？让六花穿上小裙子教你", "还有下限不会的嘛？让六花穿上小裙子教你呀"},
@@ -80,6 +83,12 @@ var double7 keywords = keywords{
 		"七七好厉害",
 		"又黑萌七",
 		"七七买买买",
+		"萌七可爱！",
+		"所以字节呢？",
+	},
+	keywords_map: map[keyword_p][]string{
+		{"鲶鲶", 40}: {"鲶鲶可爱！"},
+		{"字节", 40}: {"字节可爱！"},
 	},
 }
 
@@ -94,6 +103,7 @@ var m keywords = keywords{
 		"m开始跳了啊，你的七七呢",
 		"毕竟m",
 		"m还是留给暖司机了",
+		"一起开船！"
 	},
 }
 var laoshifu keywords = keywords{
@@ -105,6 +115,7 @@ var bingo keywords = keywords{
 	defaults: []string{
 		"Bingo不要这么不自信",
 		"Bingo小仙女",
+		"Bingo可爱！",
 	},
 }
 var azi keywords = keywords{
